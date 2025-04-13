@@ -1,4 +1,4 @@
-# Create a simple nodeJs application and deploy it onto a docker container.
+# Create a simple nodeJs application
 
 Create a working directory
 ```bash 
