@@ -1,1 +1,46 @@
-.
+
+image: docker:20.10.16
+
+options:
+  docker: true
+
+pipelines:
+  default:
+    - step:
+        name: Build, Push & Deploy
+        services:
+          - docker
+        caches:
+          - docker
+        script:
+          - apk add --no-cache git openssh-client curl
+
+          # Clone GitHub repo securely using environment variables
+          - git clone https://suvash19:Git-Token@github.com/suvash19/NodeJS-web-app.git
+          - cd NodeJS-web-app
+
+          # Tag image with commit hash
+          - export IMAGE_TAG=$BITBUCKET_COMMIT
+
+          # Docker login
+          - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+          # Build and push Docker image
+          - docker build -t $DOCKERHUB_USERNAME/docker-node-sample-app:$IMAGE_TAG .
+          - docker push $DOCKERHUB_USERNAME/docker-node-sample-app:$IMAGE_TAG
+
+          # Decode SSH private key
+          - echo "$AWS_SSH_KEY_B64" | base64 -d > test.pem
+          - chmod 600 test.pem
+
+          # SSH into EC2 and deploy Docker container
+          - |
+            ssh -o StrictHostKeyChecking=no -i test.pem ubuntu@18.212.54.143 << EOF 
+              docker pull $DOCKERHUB_USERNAME/docker-node-sample-app:$IMAGE_TAG
+              docker stop app || true
+              docker rm app || true
+              docker run -d --name app -p 80:8080 $DOCKERHUB_USERNAME/docker-node-sample-app:$IMAGE_TAG
+            EOF
+
+          # Clean up key
+          - rm test.pem
