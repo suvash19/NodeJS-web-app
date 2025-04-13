@@ -1,17 +1,17 @@
 # Create a simple nodeJs application and deploy it onto a docker container.
 
 Create a working directory
-
+```bash 
 mkdir <working_directory_name>
-
+```
 Running this command in working directory will initialize your project
-
+```bash 
 npm init
-
+```
 This will create a package.json file in the folder, that file contains app dependency packages.
 
 Replace the following code of package.json
-
+```bash 
   // package.json
 
   {
@@ -27,10 +27,13 @@ Replace the following code of package.json
       "express": "^4.16.1"
     }
   }
+```
 Running this command will install all the dependencies from package.json
+```bash 
 npm install
-
+```
 Lets create a server.js file that defines a web-app using an Express framework.
+```bash 
    // server.js
    'use strict';
    var express = require('express');
@@ -41,6 +44,7 @@ Lets create a server.js file that defines a web-app using an Express framework.
    app.listen(3000, function () {
      console.log('Example app listening on port 3000!');
    });
+```
 Lets test the application, run the below command
 node server.js
 
@@ -55,8 +59,9 @@ Lets try running the same node.js application running on the docker container. T
 First, we will create a docker image for the application.
 
 Create a Dockerfile
+```bash 
 touch Dockerfile
-
+```
 Dockerfile should look like this
 FROM node:10
 ## Create app directory
@@ -72,10 +77,11 @@ RUN npm install
 ## RUN npm ci --only=production
 
 ## Bundle app source
+```bash 
 COPY . .
 EXPOSE 3000
 CMD [ "node", "server.js" ]
-
+```
 Create .dockerignore file with following content
 node_modules
 npm-debug.log
@@ -94,13 +100,13 @@ docker images
 Node.js
 
 Run the docker image
-
+```bash 
 docker run -p 49160:3000 -d node-web-app
-
+```
 Get the container id
-
+```bash 
 docker ps
-
+```
 
 # Installing Docker
 Before you install Docker Engine for the first time on a new host machine, you need to set up the Docker repository. Afterward, you can install and update Docker from the repository.
@@ -188,7 +194,53 @@ Note: Access Tokens are safer than passwords.
 
 
 ## Step 4: Create bitbucket-pipelines.yml
+```bash 
+image: docker:20.10.16
 
+options:
+  docker: true
+
+pipelines:
+  default:
+    - step:
+        name: Build, Push & Deploy
+        services:
+          - docker
+        caches:
+          - docker
+        script:
+          - apk add --no-cache git openssh-client curl
+
+          # Clone GitHub repo securely using environment variables
+          - git clone https://suvash19:Git-Token@github.com/suvash19/NodeJS-web-app.git
+          - cd NodeJS-web-app
+
+          # Tag image with commit hash
+          - export IMAGE_TAG=$BITBUCKET_COMMIT
+
+          # Docker login
+          - echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+          # Build and push Docker image
+          - docker build -t $DOCKERHUB_USERNAME/docker-node-sample-app:$IMAGE_TAG .
+          - docker push $DOCKERHUB_USERNAME/docker-node-sample-app:$IMAGE_TAG
+
+          # Decode SSH private key
+          - echo "$AWS_SSH_KEY_B64" | base64 -d > test.pem
+          - chmod 600 test.pem
+
+          # SSH into EC2 and deploy Docker container
+          - |
+            ssh -o StrictHostKeyChecking=no -i test.pem ubuntu@18.212.54.143 << EOF 
+              docker pull $DOCKERHUB_USERNAME/docker-node-sample-app:$IMAGE_TAG
+              docker stop app || true
+              docker rm app || true
+              docker run -d --name app -p 80:8080 $DOCKERHUB_USERNAME/docker-node-sample-app:$IMAGE_TAG
+            EOF
+
+          # Clean up key
+          - rm test.pem
+```
 ## Step 6: Trigger the Pipeline
 
 To test your pipeline:
@@ -211,11 +263,77 @@ sudo mkdir prometheus
 cd prometheus
 sudo nano docker-compose.yml
 ```
+```bash 
+version: '3.3'
+volumes:
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./config:/etc/prometheus/
+      - prometheus-data:/prometheus
+    networks:
+      - prometheus-network
+    ports:
+      - "9090:9090"
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - prometheus-network
+    ports:
+      - "3000:3000"
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    container_name: node_exporter
+    command:
+      - '--path.rootfs=/host'
+    pid: host
+    ports:
+      - "9100:9100"
+    restart: unless-stopped
+    volumes:
+      - '/:/host:ro,rslave'
+    networks:
+      - prometheus-network
+networks:
+  prometheus-network:
+    driver: bridge
+```
 Also, we need a config file for Prometheus. So let’s create it.
 ```bash 
 mkdir config
 sudo nano config/prometheus.yml
 ```
+
+# my global config
+global:
+  scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  
+  # scrape_timeout is set to the global default (10s).
+  # Attach these labels to any time series or alerts when communicating with
+  # external systems (federation, remote storage, Alertmanager).
+  external_labels:
+      monitor: 'codelab-monitor'
+# A scrape configuration containing exactly one endpoint to scrape:
+# Here it's Prometheus itself.
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['prometheus:9090']
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['node_exporter:9100']
+    
 Now lets start our containers:
 ```bash 
 docker-compose up --build –d
