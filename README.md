@@ -314,7 +314,7 @@ Also, we need a config file for Prometheus. So let’s create it.
 mkdir config
 sudo nano config/prometheus.yml
 ```
-
+```bash 
 # my global config
 global:
   scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
@@ -333,7 +333,7 @@ scrape_configs:
   - job_name: 'node_exporter'
     static_configs:
       - targets: ['node_exporter:9100']
-    
+ ```  
 Now lets start our containers:
 ```bash 
 docker-compose up --build –d
