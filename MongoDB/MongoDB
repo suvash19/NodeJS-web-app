@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# === CONFIGURATION ===
+BACKUP_DIR="/path/to/your/backup/folder"     # Replace with your backup directory
+TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
+FILENAME="mongodb-backup-$TIMESTAMP"
+MONGO_HOST="localhost"
+MONGO_PORT="27017"
+MONGO_DB="your_database_name"                # Replace with your database name
+MONGO_USER="your_username"                   # Optional: comment out if not using auth
+MONGO_PASS="your_password"                   # Optional: comment out if not using auth
+
+# === CREATE BACKUP DIRECTORY ===
+mkdir -p "$BACKUP_DIR"
+
+# === PERFORM BACKUP ===
+echo "Starting MongoDB backup..."
+
+mongodump \
+  --host $MONGO_HOST \
+  --port $MONGO_PORT \
+  --db $MONGO_DB \
+  --username $MONGO_USER \
+  --password $MONGO_PASS \
+  --out "$BACKUP_DIR/$FILENAME"
+
+if [ $? -eq 0 ]; then
+  echo "Backup successful! Saved to $BACKUP_DIR/$FILENAME"
+else
+  echo "Backup failed!"
+fi
