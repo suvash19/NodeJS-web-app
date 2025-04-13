@@ -1,79 +1,106 @@
+# Create a simple nodeJs application and deploy it onto a docker container.
 
-# Node.js Docker Sample Application
+Create a working directory
 
-A simple Node.js application with Docker configuration that displays system information.
+mkdir <working_directory_name>
 
-## Features
+Running this command in working directory will initialize your project
 
-- Express.js API server
-- System information display
-- Docker containerization
-- Responsive React frontend
+npm init
 
-## Prerequisites
+This will create a package.json file in the folder, that file contains app dependency packages.
 
-To run this application, you need:
+Replace the following code of package.json
 
-- Node.js 16+ or Docker
-- npm or yarn
+  // package.json
 
-## Installation
-
-### Running with Node.js
-
-1. Install dependencies:
-
-```bash
+  {
+    "name": "docker_web_app",
+    "version": "1.0.0",
+    "description": "Node.js deploy on Docker container",
+    "author": "cmuth001@odu.edu",
+    "main": "server.js",
+    "scripts": {
+      "start": "node server.js"
+    },
+    "dependencies": {
+      "express": "^4.16.1"
+    }
+  }
+Running this command will install all the dependencies from package.json
 npm install
-```
 
-2. Start the server:
+Lets create a server.js file that defines a web-app using an Express framework.
+   // server.js
+   'use strict';
+   var express = require('express');
+   var app = express();
+   app.get('/', function (req, res) {
+     res.send('Hello World!');
+   });
+   app.listen(3000, function () {
+     console.log('Example app listening on port 3000!');
+   });
+Lets test the application, run the below command
+node server.js
 
-```bash
-node src/server/server.js
-```
+If you followed the above steps on your system, you will see the same output as below image: http://localhost:3000/
 
-3. In a separate terminal, start the frontend:
+Node.js
 
-```bash 
-npm run dev
-```
+Now node.js app is running successfully.
 
-### Running with Docker
+Lets try running the same node.js application running on the docker container. To run the application on the docker conatiner we need a docker image.
 
-1. Build the Docker image:
+First, we will create a docker image for the application.
 
-```bash
-docker build -t node-sample-app .
-```
+Create a Dockerfile
+touch Dockerfile
 
-2. Run the Docker container:
+Dockerfile should look like this
+FROM node:10
+## Create app directory
+WORKDIR /usr/app
 
-```bash
-docker run -p 3000:3000 node-sample-app
-```
+## Install app dependencies
+## A wildcard is used to ensure both package.json AND package-lock.json are copied
+## where available (npm@5+)
+COPY package*.json ./
 
-3. Start the frontend:
+RUN npm install
+## If you are building your code for production
+## RUN npm ci --only=production
 
-```bash
-npm run dev
-```
+## Bundle app source
+COPY . .
+EXPOSE 3000
+CMD [ "node", "server.js" ]
 
-## API Endpoints
+Create .dockerignore file with following content
+node_modules
+npm-debug.log
+This will prevent from copying onto docker image.
 
-- `GET /api/info` - Returns system information
-- `GET /api/health` - Returns server health status
+Building Docker image
 
-## Architecture
+docker build -t node-web-app .
 
-- Frontend: React with TypeScript and Tailwind CSS
-- Backend: Node.js with Express
-- Containerization: Docker
+Node.js
 
-## Notes
+Check the Docker images
 
-- The API server runs on port 3000 by default
-- The frontend development server needs to be started separately
+docker images
+
+Node.js
+
+Run the docker image
+
+docker run -p 49160:3000 -d node-web-app
+
+Get the container id
+
+docker ps
+
 
 # Installing Docker
 Before you install Docker Engine for the first time on a new host machine, you need to set up the Docker repository. Afterward, you can install and update Docker from the repository.
