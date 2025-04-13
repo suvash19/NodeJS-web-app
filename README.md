@@ -184,6 +184,9 @@ DOCKER_HUB_PASSWORD	     Docker Hub password or access token
 
 Note: Access Tokens are safer than passwords.
 
+![image](https://github.com/user-attachments/assets/d17fcc5a-ed48-464f-9046-44f13fef9db0)
+
+
 ## Step 4: Create bitbucket-pipelines.yml
 
 ## Step 6: Trigger the Pipeline
@@ -194,7 +197,7 @@ Commit and push the bitbucket-pipelines.yml to your Bitbucket repo
 
 ## Step 7: Expected Output
 
-# Docker Hub Deployment via Pipeline
+![image](https://github.com/user-attachments/assets/2b4a4aaa-e3dc-45cc-81f8-c031e18f8c39)
 
 
 
